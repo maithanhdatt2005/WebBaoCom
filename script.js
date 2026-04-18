@@ -523,12 +523,12 @@ function syncData() {
             data: mealData
         })
     })
-    .then(() => {
-        console.log('Đồng bộ thành công!');
-    })
-    .catch(error => {
-        console.error('Lỗi khi đồng bộ:', error);
-    });
+        .then(() => {
+            console.log('Đồng bộ thành công!');
+        })
+        .catch(error => {
+            console.error('Lỗi khi đồng bộ:', error);
+        });
 }
 
 // ===== SAVE BUTTON (toast + log) =====
@@ -537,11 +537,11 @@ function saveData() {
     if (document.activeElement && (document.activeElement.tagName === 'INPUT')) {
         document.activeElement.blur();
     }
-    
+
     saveDayState();
     saveOtherCosts(); // Ensure other costs are also saved
     syncData(); // Đồng bộ lên Google Sheets
-    
+
     const toast = document.getElementById('toast');
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
