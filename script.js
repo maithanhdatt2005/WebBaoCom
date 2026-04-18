@@ -1,5 +1,5 @@
 // ===== CONFIGURATION =====
-const scriptURL = ''; // Dán URL Script của bạn vào đây
+const scriptURL = 'https://script.google.com/macros/s/AKfycbw9df9b790iWn4T59sdphjTKOJu0KJslcC0TS9YlkAGd4Z8QAfwBA85yaK6U2NJN9hh/exec'; // Dán URL Script của bạn vào đây
 
 // ===== GLOBAL STATE =====
 let numPersonnel = 27;

@@ -7,66 +7,49 @@ function doPost(e) {
   }
 
   try {
-    var params;
-    if (e.postData && e.postData.contents) {
-      try {
-        params = JSON.parse(e.postData.contents);
-      } catch (parseEx) {
-        return createResponse({"status": "error", "message": "Invalid JSON"});
-      }
-    } else {
-      params = e.parameter;
-    }
-    
-    // Mặc định lấy ngày hôm nay do App mới chưa có Datepicker truyền sang
-    var dateObj = new Date();
-    var dateStr = [dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate()].join('-');
-    
-    var rawData = params.data; 
-    var data = (typeof rawData === 'string') ? JSON.parse(rawData) : rawData;
-    
-    if (!data) return createResponse({"status": "error", "message": "Missing data"});
+    var params = JSON.parse(e.postData.contents);
+    // Ưu tiên lấy ngày từ App gửi sang, nếu không có mới lấy ngày hôm nay
+    var dateStr = params.date || [new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()].join('-');
+    var data = params.data; 
 
     var rows = sheet.getDataRange().getValues();
     for (var i = rows.length - 1; i >= 1; i--) {
-      // Cột B (index 1) là Cột Ngày
-      if (rows[i][1] == dateStr) {
-        sheet.deleteRow(i + 1);
-      }
+      if (rows[i][1] == dateStr) { sheet.deleteRow(i + 1); }
     }
     
     var timestamp = new Date();
     var recordsToAppend = [];
-    
-    // data la array object: { id: 1, name: "...", trua: true, toi: true }
     for (var i = 0; i < data.length; i++) {
         var info = data[i];
-        recordsToAppend.push([
-            timestamp,
-            dateStr,
-            info.id,
-            info.name,
-            info.trua ? "Ăn" : "Cắt",
-            info.toi ? "Ăn" : "Cắt"
-        ]);
+        recordsToAppend.push([timestamp, dateStr, info.id, info.name, info.trua ? "Ăn" : "Cắt", info.toi ? "Ăn" : "Cắt"]);
     }
     
     if (recordsToAppend.length > 0) {
       sheet.getRange(sheet.getLastRow() + 1, 1, recordsToAppend.length, 6).setValues(recordsToAppend);
     }
-
-    return createResponse({"status": "success", "message": "Đã lưu bản ghi."});
-
+    return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
   } catch(error) {
-    return createResponse({"status": "error", "message": error.toString()});
+    return ContentService.createTextOutput("Error: " + error.toString()).setMimeType(ContentService.MimeType.TEXT);
   }
 }
 
 function doGet(e) {
-  return createResponse({"status": "ok", "message": "Backend API is Running. Use POST to update data."});
-}
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("BaoCom");
+  if (!sheet) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+  
+  var rows = sheet.getDataRange().getValues();
+  var data = [];
+  var dateStr = e.parameter.date; 
 
-function createResponse(responseObj) {
-  return ContentService.createTextOutput(JSON.stringify(responseObj))
-                       .setMimeType(ContentService.MimeType.JSON);
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][1] == dateStr) {
+      data.push({
+        id: rows[i][2],
+        name: rows[i][3],
+        trua: rows[i][4] === "Ăn",
+        toi: rows[i][5] === "Ăn"
+      });
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
