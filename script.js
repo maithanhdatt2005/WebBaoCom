@@ -162,11 +162,22 @@ function saveOtherCosts() {
 
 function loadOtherCosts() {
     const container = document.getElementById('other-costs-container');
+    if (!container) return;
     container.innerHTML = '';
     let saved = localStorage.getItem('mealApp_OtherCosts');
-    if (saved) {
-        JSON.parse(saved).forEach(c => renderOtherCostRow(c.name, c.val));
-    } else {
+    try {
+        if (saved) {
+            let parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                parsed.forEach(c => renderOtherCostRow(c.name, c.val));
+            } else {
+                renderOtherCostRow('Khoản chi khác', '0');
+            }
+        } else {
+            renderOtherCostRow('Khoản chi khác', '0');
+        }
+    } catch (e) {
+        console.error('Error loading other costs:', e);
         renderOtherCostRow('Khoản chi khác', '0');
     }
 }
@@ -491,7 +502,14 @@ function removeOtherCost(btnEl) {
 
 // ===== SAVE BUTTON (toast + log) =====
 function saveData() {
+    // Force blur any active input to ensure its individual save logic triggers
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT')) {
+        document.activeElement.blur();
+    }
+    
     saveDayState();
+    saveOtherCosts(); // Ensure other costs are also saved
+    
     const toast = document.getElementById('toast');
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
