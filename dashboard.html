@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hệ Thống Quản Lý Chấm Cơm</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- SCREEN 2: DASHBOARD -->
+    <div id="app-screen" class="screen active">
+        <div class="app-container">
+
+            <!-- App Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <h1>QUẢN LÝ CHẤM CƠM</h1>
+                    <div class="header-date" id="current-date-display">...</div>
+                </div>
+                <div class="header-right">
+                    <button class="btn-reset-list" onclick="resetAndReload()" title="Xóa dữ liệu cũ và hiển thị đúng 27 tên chiến sĩ mới">
+                        <i class="fa-solid fa-rotate"></i> Cập nhật danh sách mới
+                    </button>
+                    <button class="btn-logout" onclick="doLogout()">ĐĂNG XUẤT</button>
+                </div>
+            </header>
+
+            <!-- Metrics Row -->
+            <div class="metrics-grid">
+                <!-- Ô gộp: BỮA TRƯA + BỮA TỐI -->
+                <div class="metric-card metric-small bg-olive">
+                    <div class="metric-icon"><i class="fa-solid fa-utensils"></i> SỐ BỮA</div>
+                    <div style="display:flex; align-items:flex-end; gap:10px; margin-top:4px;">
+                        <div>
+                            <div style="font-size:0.55rem; color:rgba(255,255,255,0.65); letter-spacing:0.5px;">☀ TRƯA</div>
+                            <div class="metric-value" id="val-bua-trua" style="font-size:1.5rem; line-height:1;">0</div>
+                        </div>
+                        <div style="color:rgba(255,255,255,0.3); font-size:1.2rem; padding-bottom:2px;">|</div>
+                        <div>
+                            <div style="font-size:0.55rem; color:rgba(255,255,255,0.65); letter-spacing:0.5px;">🌙 TỐI</div>
+                            <div class="metric-value" id="val-bua-toi" style="font-size:1.5rem; line-height:1;">0</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tiền cơm ngày -->
+                <div class="metric-card metric-small bg-orange">
+                    <div class="metric-icon"><i class="fa-solid fa-dollar-sign"></i> TIỀN CƠM NGÀY</div>
+                    <div class="metric-value" id="val-tien-com">0K</div>
+                </div>
+                <!-- Tiền cơm tháng (chỉ bữa ăn) -->
+                <div class="metric-card bg-green">
+                    <div class="metric-icon"><i class="fa-solid fa-calendar-days"></i> TIỀN CƠM THÁNG</div>
+                    <div class="metric-value" id="val-tien-thang">0K</div>
+                </div>
+                <!-- Chi phí khác -->
+                <div class="metric-card bg-olive">
+                    <div class="metric-icon"><i class="fa-solid fa-arrow-trend-up"></i> CHI PHÍ KHÁC</div>
+                    <div class="metric-value" id="val-chi-phi-khac-k">0K</div>
+                </div>
+                <!-- Chi / bữa -->
+                <div class="metric-card bg-green">
+                    <div class="metric-icon"><i class="fa-solid fa-dollar-sign"></i> CHI / BỮA</div>
+                    <div class="metric-value" id="val-chi-bua-k">0K</div>
+                </div>
+            </div>
+
+            <!-- Main Content: Left & Right -->
+            <div class="main-content">
+
+                <!-- Left: List -->
+                <div class="list-section section-box">
+                    <div class="section-header bg-green"
+                        style="flex-direction: column; gap: 10px; align-items: stretch;">
+                        <!-- Title row -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2>DANH SÁCH CHẤM CƠM</h2>
+                            <button class="btn-save" onclick="saveData()">LƯU LẠI</button>
+                        </div>
+                        <!-- Month Navigator -->
+                        <div class="day-navigator" style="background: rgba(0,0,0,0.3);">
+                            <button class="nav-btn" onclick="changeMonth(-1)"><i
+                                    class="fa-solid fa-chevron-left"></i></button>
+                            <div class="day-nav-center">
+                                <div class="day-nav-month" style="font-size:0.7rem; color:#aaccaa;">THÁNG</div>
+                                <div class="day-nav-date" id="nav-month-display" style="font-size:1.6rem;">Tháng 4 /
+                                    2026</div>
+                            </div>
+                            <button class="nav-btn" onclick="changeMonth(1)"><i
+                                    class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <!-- Day Picker Grid -->
+                        <div id="day-picker" class="day-picker-grid">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                    <div class="section-body list-grid" id="personnel-list">
+                        <!-- Render dynamic list by JS -->
+                    </div>
+                </div>
+
+                <!-- Right: Pricing Setting -->
+                <div class="pricing-section">
+                    <div class="section-box">
+                        <div class="section-header bg-olive">
+                            <h2>ĐƠN GIÁ</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="price-input-group">
+                                <label><i class="fa-solid fa-sun"></i> BỮA TRƯA (Đ)</label>
+                                <input type="text" id="gia-trua" value="29.500" onkeydown="handlePriceKey(event, this)"
+                                    onblur="confirmPrice(this)">
+                            </div>
+                            <div class="price-input-group">
+                                <label><i class="fa-solid fa-moon"></i> BỮA TỐI (Đ)</label>
+                                <input type="text" id="gia-toi" value="29.500" onkeydown="handlePriceKey(event, this)"
+                                    onblur="confirmPrice(this)">
+                            </div>
+                            <div class="price-total">
+                                <span>TỔNG 2 BỮA</span>
+                                <strong id="val-tong-2-bua">59.000đ</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-box mt-20">
+                        <div class="section-header bg-orange"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2>CHI PHÍ KHÁC</h2>
+                            <button class="btn-save" style="background: white; color: var(--orange);"
+                                onclick="addOtherCost()"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="section-body" id="other-costs-container">
+                            <div class="other-cost-item"
+                                style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                                <input type="text" class="other-cost-name" placeholder="Ví dụ: Mua gas, Nước mắm..."
+                                    style="flex: 1.5;" value="Khoản chi cũ">
+                                <input type="text" class="other-cost-input" style="flex: 1;" value="230.000"
+                                    onkeydown="handlePriceKey(event, this)" onblur="confirmPriceAndSave(this)">
+                                <button class="btn-remove-cost" onclick="removeOtherCost(this)"
+                                    style="background: none; border: none; color: var(--red); font-size: 1.1rem; cursor: pointer;"><i
+                                        class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-box mt-20" id="refund-section">
+                        <div class="section-header bg-green">
+                            <h2>HOÀN TIỀN CẮT CƠM (THÁNG)</h2>
+                        </div>
+                        <div class="section-body" id="refund-list-container">
+                            <div style="font-size: 0.8rem; color: #666; text-align: center;">Đang tính toán dữ liệu...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Stats summary -->
+            <footer class="app-footer">
+                <div class="footer-row-1">
+                    <div class="footer-item">
+                        <div class="footer-label"><i class="fa-solid fa-sun"></i> TIỀN TRƯA</div>
+                        <div class="footer-value" id="f-tien-trua">0đ</div>
+                    </div>
+                    <div class="footer-item">
+                        <div class="footer-label"><i class="fa-solid fa-moon"></i> TIỀN TỐI</div>
+                        <div class="footer-value" id="f-tien-toi">0đ</div>
+                    </div>
+                    <div class="footer-item">
+                        <div class="footer-label">CHI PHÍ KHÁC TRUNG BÌNH/BỮA</div>
+                        <div class="footer-value" id="f-chi-phi-khac">0đ</div>
+                    </div>
+                    <div class="footer-item highlight">
+                        <div class="footer-label">TỔNG CỘNG</div>
+                        <div class="footer-value" id="f-tong-cong">0đ</div>
+                    </div>
+                </div>
+                <div class="footer-divider"></div>
+                <div class="footer-row-2">
+                    <div class="footer-item">
+                        <div class="footer-label">TỔNG SỐ BỮA ĂN</div>
+                        <div class="footer-value" id="f-tong-bua">0 bữa</div>
+                    </div>
+                    <div class="footer-item text-center">
+                        <div class="footer-label" style="color:#FFD080">TỔNG CUỐI THÁNG</div>
+                        <div class="footer-value-mid" id="f-tong-cuoi-thang">0đ</div>
+                    </div>
+                    <div class="footer-item text-right">
+                        <div class="footer-label">CHI PHÍ TRUNG BÌNH/BỮA</div>
+                        <div class="footer-value" id="f-chi-tb">0đ</div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">Lưu thiết lập thành công!</div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đăng Nhập - Quản Lý Chấm Cơm</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=3">
+</head>
+
+<body>
+
+    <!-- SCREEN 1: LOGIN -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h2>HỆ THỐNG<br>QUẢN LÝ CHẤM CƠM</h2>
+            </div>
+            <div class="login-body">
+                <h3>ĐĂNG NHẬP</h3>
+                <div class="form-group">
+                    <label>TÊN ĐĂNG NHẬP</label>
+                    <input type="text" id="username" placeholder="Nhập tên đăng nhập">
+                </div>
+                <div class="form-group">
+                    <label>MẬT KHẨU</label>
+                    <input type="password" id="password" placeholder="Nhập mật khẩu">
+                </div>
+                <div id="login-error"
+                    style="color: red; font-size: 0.8rem; display: none; margin-bottom: 10px; font-family: Roboto;">Sai
+                    thông tin đăng nhập! (Tài khoản: aaa / Pass: 123)</div>
+                <button class="btn-login" onclick="doLogin()">ĐĂNG NHẬP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Logic -->
+    <script>
+        // Check if already logged in
+        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+            window.location.href = 'dashboard.html';
+        }
+
+        function doLogin() {
+            let u = document.getElementById('username').value;
+            let p = document.getElementById('password').value;
+
+            if (u === 'aaa' && p === '123') {
+                document.getElementById('login-error').style.display = 'none';
+                sessionStorage.setItem('isLoggedIn', 'true');
+                window.location.href = 'dashboard.html';
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        // Enter key to login
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                const usernameInput = document.getElementById('username');
+                const passwordInput = document.getElementById('password');
+                if (document.activeElement === usernameInput || document.activeElement === passwordInput) {
+                    doLogin();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
