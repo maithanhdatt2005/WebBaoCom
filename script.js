@@ -1,3 +1,6 @@
+// ===== CONFIGURATION =====
+const scriptURL = ''; // Dán URL Script của bạn vào đây
+
 // ===== GLOBAL STATE =====
 let numPersonnel = 27;
 let mealData = [];
@@ -500,6 +503,34 @@ function removeOtherCost(btnEl) {
     calculate();
 }
 
+// ===== DATA SYNC (GOOGLE SHEETS) =====
+function syncData() {
+    if (!scriptURL) {
+        console.warn('Script URL chưa được thiết lập. Dữ liệu chỉ được lưu cục bộ.');
+        return;
+    }
+
+    // Hiển thị trạng thái đang đồng bộ (nếu cần)
+    console.log('Đang đồng bộ dữ liệu lên Google Sheets...');
+
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors', // Sử dụng no-cors để tránh lỗi CORS với Google Apps Script
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            data: mealData
+        })
+    })
+    .then(() => {
+        console.log('Đồng bộ thành công!');
+    })
+    .catch(error => {
+        console.error('Lỗi khi đồng bộ:', error);
+    });
+}
+
 // ===== SAVE BUTTON (toast + log) =====
 function saveData() {
     // Force blur any active input to ensure its individual save logic triggers
@@ -509,6 +540,7 @@ function saveData() {
     
     saveDayState();
     saveOtherCosts(); // Ensure other costs are also saved
+    syncData(); // Đồng bộ lên Google Sheets
     
     const toast = document.getElementById('toast');
     toast.classList.add('show');
