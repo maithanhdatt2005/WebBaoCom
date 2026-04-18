@@ -185,9 +185,10 @@ function loadOtherCosts() {
     }
 }
 
-function loadDayState() {
+async function loadDayState() {
     let key = 'mealApp_Day_' + dateKey(currentDate);
     let saved = localStorage.getItem(key);
+
     // 1. Ưu tiên hiện dữ liệu trong máy trước cho nhanh
     if (saved) {
         let state = JSON.parse(saved);
@@ -202,6 +203,7 @@ function loadDayState() {
 
     renderPersonnelList();
     calculate();
+
     // 2. Tự động kiểm tra trên Google Sheets xem có bản mới hơn không
     if (scriptURL) {
         try {
@@ -221,6 +223,7 @@ function loadDayState() {
         }
     }
 }
+
 
 // ===== MONTHLY TOTAL =====
 function calcMonthlyTotal() {
