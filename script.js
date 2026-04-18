@@ -188,7 +188,7 @@ function loadOtherCosts() {
 function loadDayState() {
     let key = 'mealApp_Day_' + dateKey(currentDate);
     let saved = localStorage.getItem(key);
-
+    // 1. Ưu tiên hiện dữ liệu trong máy trước cho nhanh
     if (saved) {
         let state = JSON.parse(saved);
         mealData = state.mealData;
@@ -199,10 +199,27 @@ function loadDayState() {
         document.getElementById('gia-trua').value = '29.500';
         document.getElementById('gia-toi').value = '29.500';
     }
-    // Note: other costs are NOT touched here—they persist across days
 
     renderPersonnelList();
     calculate();
+    // 2. Tự động kiểm tra trên Google Sheets xem có bản mới hơn không
+    if (scriptURL) {
+        try {
+            const resp = await fetch(`${scriptURL}?date=${dateKey(currentDate)}`);
+            const cloudData = await resp.json();
+
+            // Nếu trên Google có dữ liệu, ghi đè vào App luôn
+            if (cloudData && cloudData.length > 0) {
+                mealData = cloudData;
+                saveDayState(); // Lưu lại vào máy để lần sau mở nhanh hơn
+                renderPersonnelList();
+                calculate();
+                console.log("Đã cập nhật dữ liệu mới nhất từ Google Sheets.");
+            }
+        } catch (e) {
+            console.log("Không thể kết nối Google Sheets hoặc ngày này chưa có dữ liệu trên Cloud.");
+        }
+    }
 }
 
 // ===== MONTHLY TOTAL =====
@@ -505,30 +522,18 @@ function removeOtherCost(btnEl) {
 
 // ===== DATA SYNC (GOOGLE SHEETS) =====
 function syncData() {
-    if (!scriptURL) {
-        console.warn('Script URL chưa được thiết lập. Dữ liệu chỉ được lưu cục bộ.');
-        return;
-    }
+    if (!scriptURL) return;
 
-    // Hiển thị trạng thái đang đồng bộ (nếu cần)
-    console.log('Đang đồng bộ dữ liệu lên Google Sheets...');
-
+    // Gửi kèm cả Ngày đang xem để Google Sheet biết ghi vào đâu
     fetch(scriptURL, {
         method: 'POST',
-        mode: 'no-cors', // Sử dụng no-cors để tránh lỗi CORS với Google Apps Script
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
+            date: dateKey(currentDate), // Gửi ngày hiện tại
             data: mealData
         })
-    })
-        .then(() => {
-            console.log('Đồng bộ thành công!');
-        })
-        .catch(error => {
-            console.error('Lỗi khi đồng bộ:', error);
-        });
+    }).then(() => console.log('Đã đồng bộ lên Google.'));
 }
 
 // ===== SAVE BUTTON (toast + log) =====
