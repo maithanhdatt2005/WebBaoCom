@@ -35,7 +35,7 @@
                 </div>
                 <div id="login-error"
                     style="color: red; font-size: 0.8rem; display: none; margin-bottom: 10px; font-family: Roboto;">Sai
-                    thông tin đăng nhập! (Tài khoản: aaa / Pass: 123)</div>
+                    thông tin đăng nhập! (Gợi ý: aaa/123 hoặc bbb/123)</div>
                 <button class="btn-login" onclick="doLogin()">ĐĂNG NHẬP</button>
             </div>
         </div>
@@ -52,7 +52,12 @@
             let u = document.getElementById('username').value;
             let p = document.getElementById('password').value;
 
-            if (u === 'aaa' && p === '123') {
+            const validUsers = {
+                'aaa': '123',
+                'bbb': '123'
+            };
+
+            if (validUsers[u] && validUsers[u] === p) {
                 document.getElementById('login-error').style.display = 'none';
                 sessionStorage.setItem('isLoggedIn', 'true');
                 window.location.href = 'dashboard.html';
