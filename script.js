@@ -189,12 +189,12 @@ async function loadDayState() {
     let key = 'mealApp_Day_' + dateKey(currentDate);
     let saved = localStorage.getItem(key);
 
-    // 1. Ưu tiên hiện dữ liệu trong máy trước cho nhanh
+    // 1. Hiện dữ liệu cục bộ trước cho nhanh
     if (saved) {
         let state = JSON.parse(saved);
         mealData = state.mealData;
-        document.getElementById('gia-trua').value = state.priceTrua;
-        document.getElementById('gia-toi').value = state.priceToi;
+        document.getElementById('gia-trua').value = state.priceTrua || '29.500';
+        document.getElementById('gia-toi').value = state.priceToi || '29.500';
     } else {
         mealData = defaultMealData();
         document.getElementById('gia-trua').value = '29.500';
@@ -208,15 +208,29 @@ async function loadDayState() {
     if (scriptURL) {
         try {
             const resp = await fetch(`${scriptURL}?date=${dateKey(currentDate)}`);
-            const cloudData = await resp.json();
+            const cloudResponse = await resp.json();
 
-            // Nếu trên Google có dữ liệu, ghi đè vào App luôn
-            if (cloudData && cloudData.length > 0) {
-                mealData = cloudData;
+            // Nếu trên Google có dữ liệu, cập nhật toàn bộ vào App
+            if (cloudResponse) {
+                // Cập nhật Meal Data
+                if (cloudResponse.mealData && cloudResponse.mealData.length > 0) {
+                    mealData = cloudResponse.mealData;
+                }
+
+                // Cập nhật Giá tiền
+                document.getElementById('gia-trua').value = cloudResponse.priceTrua || '29.500';
+                document.getElementById('gia-toi').value = cloudResponse.priceToi || '29.500';
+
+                // Cập nhật Chi phí khác (Other Costs)
+                if (cloudResponse.otherCosts && cloudResponse.otherCosts.length > 0) {
+                    localStorage.setItem('mealApp_OtherCosts', JSON.stringify(cloudResponse.otherCosts));
+                    loadOtherCosts(); // Render lại giao diện chi phí khác
+                }
+
                 saveDayState(); // Lưu lại vào máy để lần sau mở nhanh hơn
                 renderPersonnelList();
                 calculate();
-                console.log("Đã cập nhật dữ liệu mới nhất từ Google Sheets.");
+                console.log("Đã cập nhật dữ liệu toàn diện từ Google Sheets.");
             }
         } catch (e) {
             console.log("Không thể kết nối Google Sheets hoặc ngày này chưa có dữ liệu trên Cloud.");
@@ -527,16 +541,23 @@ function removeOtherCost(btnEl) {
 function syncData() {
     if (!scriptURL) return;
 
-    // Gửi kèm cả Ngày đang xem để Google Sheet biết ghi vào đâu
+    let otherCosts = [];
+    let savedOther = localStorage.getItem('mealApp_OtherCosts');
+    if (savedOther) otherCosts = JSON.parse(savedOther);
+
+    // Gửi kèm toàn bộ thông tin quan trọng lên Cloud
     fetch(scriptURL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-            date: dateKey(currentDate), // Gửi ngày hiện tại
-            data: mealData
+            date: dateKey(currentDate),
+            data: mealData,
+            priceTrua: document.getElementById('gia-trua').value,
+            priceToi: document.getElementById('gia-toi').value,
+            otherCosts: otherCosts
         })
-    }).then(() => console.log('Đã đồng bộ lên Google.'));
+    }).then(() => console.log('Đã đồng bộ toàn bộ dữ liệu lên Google.'));
 }
 
 // ===== SAVE BUTTON (toast + log) =====
