@@ -218,12 +218,9 @@ async function loadDayState() {
                     mealData = cloudResponse.mealData;
                 }
 
-                // Cập nhật Giá tiền và đảm bảo luôn có dấu chấm (vd: 30000 -> 30.000)
-                let pTrua = String(cloudResponse.priceTrua || '29.500');
-                let pToi = String(cloudResponse.priceToi || '29.500');
-                
-                document.getElementById('gia-trua').value = new Intl.NumberFormat('vi-VN').format(parseInt(pTrua.replace(/\./g, '')) || 0);
-                document.getElementById('gia-toi').value = new Intl.NumberFormat('vi-VN').format(parseInt(pToi.replace(/\./g, '')) || 0);
+                // Cập nhật Giá tiền
+                document.getElementById('gia-trua').value = cloudResponse.priceTrua || '29.500';
+                document.getElementById('gia-toi').value = cloudResponse.priceToi || '29.500';
 
                 // Cập nhật Chi phí khác (Other Costs)
                 if (cloudResponse.otherCosts && cloudResponse.otherCosts.length > 0) {
