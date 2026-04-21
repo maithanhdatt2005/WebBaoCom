@@ -16,7 +16,7 @@ function doPost(e) {
 
   try {
     var params = JSON.parse(e.postData.contents);
-    var dateStr = params.date || [new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()].join('-');
+    var dateStr = params.date; // Định dạng YYYY-MM-DD từ App gửi sang
     
     // 1. Lưu Meal Data và Giá Tiền
     if (params.data) {
@@ -25,8 +25,14 @@ function doPost(e) {
       var priceToi = params.priceToi || "29.500";
       
       var rows = sheet.getDataRange().getValues();
+      // Xóa dữ liệu cũ của ngày này (Duyệt ngược để xóa không bị lệch index)
       for (var i = rows.length - 1; i >= 1; i--) {
-        if (rows[i][1] == dateStr) { sheet.deleteRow(i + 1); }
+        var rowDate = rows[i][1];
+        // Chuẩn hóa ngày trong sheet về YYYY-MM-DD để so sánh
+        var formattedRowDate = (rowDate instanceof Date) ? Utilities.formatDate(rowDate, ss.getSpreadsheetTimeZone(), "yyyy-MM-dd") : rowDate;
+        if (formattedRowDate == dateStr) { 
+          sheet.deleteRow(i + 1); 
+        }
       }
       
       var timestamp = new Date();
@@ -67,19 +73,22 @@ function doGet(e) {
     otherCosts: []
   };
 
+  var targetDate = e.parameter.date;
+
   // 1. Lấy Meal Data và Giá Tiền
   if (sheet) {
     var rows = sheet.getDataRange().getValues();
-    var dateStr = e.parameter.date; 
     for (var i = 1; i < rows.length; i++) {
-      if (rows[i][1] == dateStr) {
+      var rowDate = rows[i][1];
+      var formattedRowDate = (rowDate instanceof Date) ? Utilities.formatDate(rowDate, ss.getSpreadsheetTimeZone(), "yyyy-MM-dd") : rowDate;
+      
+      if (formattedRowDate == targetDate) {
         response.mealData.push({
           id: rows[i][2],
           name: rows[i][3],
           trua: rows[i][4] === "Ăn",
           toi: rows[i][5] === "Ăn"
         });
-        // Lấy giá tiền từ dòng đầu tiên tìm thấy của ngày đó
         response.priceTrua = rows[i][6] || "29.500";
         response.priceToi = rows[i][7] || "29.500";
       }

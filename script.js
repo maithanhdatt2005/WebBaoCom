@@ -207,7 +207,8 @@ async function loadDayState() {
     // 2. Tự động kiểm tra trên Google Sheets xem có bản mới hơn không
     if (scriptURL) {
         try {
-            const resp = await fetch(`${scriptURL}?date=${dateKey(currentDate)}`);
+            // Thêm tham số t= để chống trình duyệt lưu đệm (cache), đảm bảo lấy dữ liệu mới nhất
+            const resp = await fetch(`${scriptURL}?date=${dateKey(currentDate)}&t=${Date.now()}`);
             const cloudResponse = await resp.json();
 
             // Nếu trên Google có dữ liệu, cập nhật toàn bộ vào App
