@@ -1,121 +1,84 @@
+const SS = SpreadsheetApp.getActiveSpreadsheet();
+
 function doPost(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  var reportSheet = ss.getSheetByName("BaoCaoTongHop") || ss.insertSheet("BaoCaoTongHop");
-  var detailSheet = ss.getSheetByName("ChiTietChamCom") || ss.insertSheet("ChiTietChamCom");
-  var settingsSheet = ss.getSheetByName("Settings") || ss.insertSheet("Settings");
-
-  if (reportSheet.getLastRow() === 0) {
-    reportSheet.appendRow(["Ngày", "Giá Trưa", "Giá Tối", "Tổng Trưa", "Tổng Tối", "Tiền Cơm", "Chi Phí Khác (Ngày)", "Tổng Cộng"]);
-    reportSheet.getRange(1, 1, 1, 8).setBackground("#495B43").setFontColor("white").setFontWeight("bold");
-  }
-  if (detailSheet.getLastRow() === 0) {
-    detailSheet.appendRow(["Ngày", "Mã", "Họ Tên", "Trưa", "Tối", "Ghi chú"]);
-    detailSheet.getRange(1, 1, 1, 6).setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
-  }
-
   try {
-    var params = JSON.parse(e.postData.contents);
-    var dateStr = String(params.date).trim();
+    const params = JSON.parse(e.postData.contents);
+    const dateStr = String(params.date).trim();
     
-    if (params.data) {
-      var data = params.data;
-      var pTrua = params.priceTrua || "29.500";
-      var pToi = params.priceToi || "29.500";
-      var otherCosts = params.otherCosts || [];
+    const reportSheet = getSheet("BaoCaoTongHop");
+    const detailSheet = getSheet("ChiTietChamCom");
+    const settingsSheet = getSheet("Settings");
 
-      var totalTrua = 0, totalToi = 0;
-      data.forEach(function(p) {
-        if (p.trua) totalTrua++;
-        if (p.toi) totalToi++;
-      });
+    // Xóa dữ liệu cũ của ngày này để tránh trùng lặp khi đồng bộ lại
+    deleteRowsByDate(detailSheet, dateStr);
+    deleteRowsByDate(reportSheet, dateStr);
 
-      var valPriceTrua = parseInt(pTrua.replace(/\./g, '')) || 0;
-      var valPriceToi = parseInt(pToi.replace(/\./g, '')) || 0;
-      var mealTotal = (totalTrua * valPriceTrua) + (totalToi * valPriceToi);
+    // 1. Lưu Chi Tiết Chấm Cơm
+    if (params.data && params.data.length > 0) {
+      let records = params.data.map(p => ["'" + dateStr, p.id, p.name, p.trua ? "Ăn" : "Cắt", p.toi ? "Ăn" : "Cắt", ""]);
+      detailSheet.getRange(detailSheet.getLastRow() + 1, 1, records.length, 6).setValues(records);
       
-      var totalOther = 0;
-      otherCosts.forEach(function(c) { totalOther += (parseInt(String(c.val).replace(/\./g, '')) || 0); });
-      var daysInMonth = new Date(new Date(dateStr).getFullYear(), new Date(dateStr).getMonth() + 1, 0).getDate();
-      var dailyOther = Math.round(totalOther / daysInMonth);
+      // 2. Lưu Báo Cáo Tổng Hợp
+      let tTrua = params.data.filter(p => p.trua).length;
+      let tToi = params.data.filter(p => p.toi).length;
+      let pTrua = params.priceTrua || "29.500";
+      let pToi = params.priceToi || "29.500";
+      let vTrua = parseInt(pTrua.replace(/\./g, '')) || 0;
+      let vToi = parseInt(pToi.replace(/\./g, '')) || 0;
+      let totalMeal = (tTrua * vTrua) + (tToi * vToi);
+      
+      let otherVal = 0;
+      (params.otherCosts || []).forEach(c => otherVal += (parseInt(String(c.val).replace(/\./g, '')) || 0));
+      let days = new Date(new Date(dateStr).getFullYear(), new Date(dateStr).getMonth() + 1, 0).getDate();
+      let dailyOther = Math.round(otherVal / days);
 
-      // Xóa cũ Báo Cáo
-      var rRows = reportSheet.getDataRange().getValues();
-      for (var i = rRows.length - 1; i >= 1; i--) {
-        if (formatDateString(rRows[i][0]) === dateStr) reportSheet.deleteRow(i + 1);
-      }
-      // Lưu dưới dạng Text tuyệt đối bằng cách thêm dấu nháy đơn để tránh mất dấu chấm
-      reportSheet.appendRow(["'" + dateStr, "'" + pTrua, "'" + pToi, totalTrua, totalToi, mealTotal, dailyOther, mealTotal + dailyOther]);
-
-      // Xóa cũ Chi Tiết
-      var dRows = detailSheet.getDataRange().getValues();
-      for (var j = dRows.length - 1; j >= 1; j--) {
-        if (formatDateString(dRows[j][0]) === dateStr) detailSheet.deleteRow(j + 1);
-      }
-      var detailRecords = [];
-      data.forEach(function(p) {
-        detailRecords.push(["'" + dateStr, p.id, p.name, p.trua ? "Ăn" : "Cắt", p.toi ? "Ăn" : "Cắt", ""]);
-      });
-      detailSheet.getRange(detailSheet.getLastRow() + 1, 1, detailRecords.length, 6).setValues(detailRecords);
+      reportSheet.appendRow(["'" + dateStr, "'" + pTrua, "'" + pToi, tTrua, tToi, totalMeal, dailyOther, totalMeal + dailyOther]);
     }
 
+    // 3. Lưu Cài Đặt (Other Costs)
     if (params.otherCosts) {
-      settingsSheet.clearContents();
-      settingsSheet.appendRow(["Key", "Value"]);
+      settingsSheet.clear().appendRow(["Key", "Value"]);
       settingsSheet.appendRow(["otherCosts", JSON.stringify(params.otherCosts)]);
-      settingsSheet.getRange(1, 1, 1, 2).setBackground("#1565C0").setFontColor("white").setFontWeight("bold");
     }
 
-    return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
-  } catch(error) {
-    return ContentService.createTextOutput("Error: " + error.toString()).setMimeType(ContentService.MimeType.TEXT);
+    return response({"status": "success"});
+  } catch(err) {
+    return response({"status": "error", "message": err.toString()});
   }
 }
 
 function doGet(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var reportSheet = ss.getSheetByName("BaoCaoTongHop");
-  var detailSheet = ss.getSheetByName("ChiTietChamCom");
-  var settingsSheet = ss.getSheetByName("Settings");
+  const targetDate = e.parameter.date;
+  const res = { mealData: [], priceTrua: "29.500", priceToi: "29.500", otherCosts: [] };
   
-  var response = { mealData: [], priceTrua: "29.500", priceToi: "29.500", otherCosts: [] };
-  var targetDate = String(e.parameter.date).trim();
+  // Lấy dữ liệu chi tiết
+  const dData = getSheet("ChiTietChamCom").getDataRange().getValues();
+  for (let i = 1; i < dData.length; i++) {
+    if (formatDate(dData[i][0]) === targetDate) {
+      res.mealData.push({ id: dData[i][1], name: dData[i][2], trua: dData[i][3] === "Ăn", toi: dData[i][4] === "Ăn" });
+    }
+  }
+  // Lấy giá tiền
+  const rData = getSheet("BaoCaoTongHop").getDataRange().getValues();
+  for (let i = 1; i < rData.length; i++) {
+    if (formatDate(rData[i][0]) === targetDate) {
+      res.priceTrua = String(rData[i][1]).replace(/'/g, '');
+      res.priceToi = String(rData[i][2]).replace(/'/g, '');
+      break;
+    }
+  }
+  // Lấy chi phí khác
+  const sData = getSheet("Settings").getDataRange().getValues();
+  if (sData.length > 1) { try { res.otherCosts = JSON.parse(sData[1][1]); } catch(e){} }
 
-  if (detailSheet) {
-    var rows = detailSheet.getDataRange().getValues();
-    for (var i = 1; i < rows.length; i++) {
-      if (formatDateString(rows[i][0]) === targetDate) {
-        response.mealData.push({ id: rows[i][1], name: rows[i][2], trua: rows[i][3] === "Ăn", toi: rows[i][4] === "Ăn" });
-      }
-    }
-  }
-  
-  if (reportSheet) {
-    var rRows = reportSheet.getDataRange().getValues();
-    for (var k = 1; k < rRows.length; k++) {
-      if (formatDateString(rRows[k][0]) === targetDate) {
-        response.priceTrua = String(rRows[k][1] || "29.500").replace(/^'/, '');
-        response.priceToi = String(rRows[k][2] || "29.500").replace(/^'/, '');
-      }
-    }
-  }
-
-  if (settingsSheet) {
-    var sRows = settingsSheet.getDataRange().getValues();
-    for (var j = 1; j < sRows.length; j++) {
-      if (sRows[j][0] == "otherCosts") {
-        try { response.otherCosts = JSON.parse(sRows[j][1]); } catch(err) {}
-      }
-    }
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+  return response(res);
 }
 
-function formatDateString(dateVal) {
-  if (dateVal instanceof Date) {
-    return Utilities.formatDate(dateVal, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), "yyyy-MM-dd");
-  }
-  // Loại bỏ khoảng trắng và nháy đơn (nếu có)
-  return String(dateVal).replace(/^'/, '').trim();
+// Helpers
+function getSheet(name) { return SS.getSheetByName(name) || SS.insertSheet(name); }
+function response(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
+function formatDate(v) { return (v instanceof Date) ? Utilities.formatDate(v, SS.getSpreadsheetTimeZone(), "yyyy-MM-dd") : String(v).replace(/'/g, '').trim(); }
+function deleteRowsByDate(s, d) {
+  let rows = s.getDataRange().getValues();
+  for (let i = rows.length - 1; i >= 1; i--) { if (formatDate(rows[i][0]) === d) s.deleteRow(i + 1); }
 }
