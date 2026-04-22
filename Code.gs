@@ -44,8 +44,8 @@ function doPost(e) {
       for (var i = rRows.length - 1; i >= 1; i--) {
         if (formatDateString(rRows[i][0]) === dateStr) reportSheet.deleteRow(i + 1);
       }
-      // Lưu dưới dạng Text tuyệt đối bằng cách thêm dấu nháy đơn
-      reportSheet.appendRow(["'" + dateStr, pTrua, pToi, totalTrua, totalToi, mealTotal, dailyOther, mealTotal + dailyOther]);
+      // Lưu dưới dạng Text tuyệt đối bằng cách thêm dấu nháy đơn để tránh mất dấu chấm
+      reportSheet.appendRow(["'" + dateStr, "'" + pTrua, "'" + pToi, totalTrua, totalToi, mealTotal, dailyOther, mealTotal + dailyOther]);
 
       // Xóa cũ Chi Tiết
       var dRows = detailSheet.getDataRange().getValues();
@@ -94,8 +94,8 @@ function doGet(e) {
     var rRows = reportSheet.getDataRange().getValues();
     for (var k = 1; k < rRows.length; k++) {
       if (formatDateString(rRows[k][0]) === targetDate) {
-        response.priceTrua = String(rRows[k][1] || "29.500");
-        response.priceToi = String(rRows[k][2] || "29.500");
+        response.priceTrua = String(rRows[k][1] || "29.500").replace(/^'/, '');
+        response.priceToi = String(rRows[k][2] || "29.500").replace(/^'/, '');
       }
     }
   }
